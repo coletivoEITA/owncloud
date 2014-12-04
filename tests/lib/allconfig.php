@@ -37,20 +37,21 @@ class TestAllConfig extends \Test\TestCase {
 		$config->deleteUserValue('userDelete', 'appDelete', 'keyDelete');
 
 		$result = $this->connection->executeQuery(
-				'SELECT COUNT(*) FROM `*PREFIX*preferences`'
+				'SELECT COUNT(*) FROM `*PREFIX*preferences` WHERE `userid` = ?',
+				array('userDelete')
 			)->fetch();
 		$actualCount = $result['COUNT(*)'];
 
-		$this->assertEquals(0, $actualCount);
+		$this->assertEquals(0, $actualCount, 'There was one value in the database and after the tests there should be no entry left.');
 	}
 
 	public function testSetUserValue() {
-		$selectAllSQL = 'SELECT `userid`, `appid`, `configkey`, `configvalue` FROM `*PREFIX*preferences`';
+		$selectAllSQL = 'SELECT `userid`, `appid`, `configkey`, `configvalue` FROM `*PREFIX*preferences` WHERE `userid` = ?';
 		$config = $this->getConfig();
 
 		$config->setUserValue('userSet', 'appSet', 'keySet', 'valueSet');
 
-		$result = $this->connection->executeQuery($selectAllSQL)->fetchAll();
+		$result = $this->connection->executeQuery($selectAllSQL, array('userSet'))->fetchAll();
 
 		$this->assertEquals(1, count($result));
 		$this->assertEquals(array(
@@ -63,7 +64,7 @@ class TestAllConfig extends \Test\TestCase {
 		// test if the method overwrites existing database entries
 		$config->setUserValue('userSet', 'appSet', 'keySet', 'valueSet2');
 
-		$result = $this->connection->executeQuery($selectAllSQL)->fetchAll();
+		$result = $this->connection->executeQuery($selectAllSQL, array('userSet'))->fetchAll();
 
 		$this->assertEquals(1, count($result));
 		$this->assertEquals(array(
@@ -109,7 +110,8 @@ class TestAllConfig extends \Test\TestCase {
 		$this->assertEquals('valueGet', $value);
 
 		$result = $this->connection->executeQuery(
-			'SELECT `userid`, `appid`, `configkey`, `configvalue` FROM `*PREFIX*preferences`'
+			'SELECT `userid`, `appid`, `configkey`, `configvalue` FROM `*PREFIX*preferences` WHERE `userid` = ?',
+			array('userGet')
 		)->fetchAll();
 
 		$this->assertEquals(1, count($result));
@@ -121,7 +123,7 @@ class TestAllConfig extends \Test\TestCase {
 		), $result[0]);
 
 		// drop data from database - but the config option should be cached in the config object
-		$this->connection->executeUpdate('DELETE FROM `*PREFIX*preferences`');
+		$this->connection->executeUpdate('DELETE FROM `*PREFIX*preferences` WHERE `userid` = ?', array('userGet'));
 
 		// testing the caching mechanism
 		$value = $config->getUserValue('userGet', 'appGet', 'keyGet');
@@ -129,7 +131,8 @@ class TestAllConfig extends \Test\TestCase {
 		$this->assertEquals('valueGet', $value);
 
 		$result = $this->connection->executeQuery(
-			'SELECT `userid`, `appid`, `configkey`, `configvalue` FROM `*PREFIX*preferences`'
+			'SELECT `userid`, `appid`, `configkey`, `configvalue` FROM `*PREFIX*preferences` WHERE `userid` = ?',
+			array('userGet')
 		)->fetchAll();
 
 		$this->assertEquals(0, count($result));
